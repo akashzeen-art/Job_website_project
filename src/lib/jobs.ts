@@ -4,7 +4,7 @@ import { decodeGreenhouseHtml, sanitizeHtml } from "@/lib/html";
 import { inferDepartment, mentionsIndia, normalizeCity } from "@/lib/india";
 import type { Company, Job, JobDetail } from "@/lib/types";
 
-const CACHE_KEY = "meridian:jobs-cache";
+const CACHE_KEY = "meridian:jobs-cache:v2";
 const CACHE_MS = 30 * 60 * 1000;
 
 type CachedPayload = {

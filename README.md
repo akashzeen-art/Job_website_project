@@ -28,4 +28,4 @@ The first load talks to dozens of career boards and can take a little while. Aft
 
 React, Vite, TypeScript, Tailwind CSS, React Router. No API keys required.
 
-Dev and preview proxy Greenhouse and Ashby through `/ats/gh` and `/ats/ashby`. Workday posts go through `/ats/wd` on the Vite server. On Vercel, Greenhouse and Ashby are rewritten in `vercel.json`; Workday listings may be empty there unless you add a similar server-side proxy.
+Dev and preview proxy Greenhouse, Ashby, and Workday through `/ats/gh`, `/ats/ashby`, and `/ats/wd`. On Vercel, Greenhouse and Ashby are rewritten in `vercel.json`; Workday POSTs go through the `/api/wd` serverless proxy.

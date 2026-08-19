@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/ats/gh/:path*", "destination": "https://boards-api.greenhouse.io/:path*" },
     { "source": "/ats/ashby/:path*", "destination": "https://api.ashbyhq.com/:path*" },
-    { "source": "/((?!ats/).*)", "destination": "/index.html" }
+    { "source": "/ats/wd/:path*", "destination": "/api/wd/:path*" },
+    { "source": "/((?!ats/|api/).*)", "destination": "/index.html" }
   ]
 }
