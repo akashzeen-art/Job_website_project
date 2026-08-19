@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
+  --color-bg: #14110f;
+  --color-bg-2: #1b1714;
+  --color-surface: #221d19;
+  --color-surface-2: #2a241f;
+  --color-line: #3d342c;
+  --color-text: #f4ede3;
+  --color-muted: #b7a99a;
+  --color-gold: #c6a875;
+  --color-wine: #9a3b32;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+html {
+  overflow-x: clip;
+}
+
+body {
+  font-family: var(--font-sans);
+  min-height: 100%;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.bg-app {
+  background: var(--color-bg);
+}
+
+.hairline {
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  height: 1px;
+}
+
+.card-hover {
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+
+@media (hover: hover) {
+  .card-hover:hover {
+    border-color: color-mix(in srgb, var(--color-gold) 55%, transparent);
+    background: color-mix(in srgb, var(--color-surface) 88%, var(--color-gold) 6%);
+  }
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.shimmer {
+  background: linear-gradient(110deg, #221d19 8%, #2e2722 18%, #221d19 33%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position-x: -200%;
+  }
+}
+
+.job-prose h1,
+.job-prose h2,
+.job-prose h3,
+.job-prose h4 {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  margin-top: 1.3em;
+  margin-bottom: 0.4em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.job-prose p,
+.job-prose li {
+  margin-bottom: 0.7em;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.job-prose ul,
+.job-prose ol {
+  padding-left: 1.15em;
+  margin-bottom: 1em;
+}
+
+.job-prose a {
+  color: var(--color-gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.job-prose strong {
+  color: var(--color-text);
+}
+
+.job-prose img,
+.job-prose table {
+  max-width: 100%;
+}
