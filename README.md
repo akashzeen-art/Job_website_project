@@ -15,7 +15,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The first load talks to dozens of career boards and can take up to a minute. After that, listings are cached on disk for 30 minutes (`.cache/jobs.json`).
+The first load talks to dozens of career boards and can take a little while. After that, listings are cached in the browser (`sessionStorage`) for 30 minutes.
 
 ## What you can do
 
@@ -26,4 +26,6 @@ The first load talks to dozens of career boards and can take up to a minute. Aft
 
 ## Stack
 
-Next.js, TypeScript, Tailwind CSS. No API keys required.
+React, Vite, TypeScript, Tailwind CSS, React Router. No API keys required.
+
+Dev and preview proxy Greenhouse and Ashby through `/ats/gh` and `/ats/ashby`. Workday posts go through `/ats/wd` on the Vite server. On Vercel, Greenhouse and Ashby are rewritten in `vercel.json`; Workday listings may be empty there unless you add a similar server-side proxy.
