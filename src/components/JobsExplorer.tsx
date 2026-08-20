@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { JOB_KINDS, STREAMS, inferKind } from "@/lib/catalog";
 import { CITIES } from "@/lib/india";
 import { parseIntent } from "@/lib/intent";
 import { fitScore } from "@/lib/insights";
@@ -7,7 +8,7 @@ import type { Job } from "@/lib/types";
 import { JobCard } from "@/components/JobCard";
 import { SearchBar } from "@/components/SearchBar";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZES = [12, 24, 48, 100, 250] as const;
 
 type Props = {
   jobs: Job[];
@@ -21,17 +22,21 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
   const [searchParams] = useSearchParams();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(24);
+  const [pageDraft, setPageDraft] = useState("1");
   const [sort, setSort] = useState<"fit" | "new">("fit");
 
   const q = searchParams.get("q") ?? "";
   const city = searchParams.get("city") ?? "";
   const company = searchParams.get("company") ?? "";
   const department = searchParams.get("department") ?? "";
+  const kind = searchParams.get("kind") ?? "";
+  const stream = searchParams.get("stream") ?? "";
   const intent = useMemo(() => parseIntent(q), [q]);
 
   useEffect(() => {
     setPage(1);
-  }, [q, city, company, department, sort]);
+  }, [q, city, company, department, kind, stream, sort, pageSize]);
 
   useEffect(() => {
     const original = document.body.style.overflow;
@@ -45,17 +50,27 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
     const cityFilter = city || intent.city || "";
     const companyFilter = company || intent.company || "";
     const departmentFilter = department || "";
+    const kindFilter = kind || intent.kind || "";
+    const streamFilter = stream || intent.stream || "";
     const text = (company ? q : intent.q).trim().toLowerCase();
 
     const next = jobs.filter((job) => {
       if (text) {
-        const haystack = `${job.title} ${job.company} ${job.location} ${job.department}`.toLowerCase();
+        const haystack =
+          `${job.title} ${job.company} ${job.location} ${job.department} ${job.stream ?? ""}`.toLowerCase();
         const tokens = text.split(/\s+/).filter(Boolean);
         if (!tokens.every((token) => haystack.includes(token))) return false;
       }
       if (cityFilter && job.city !== cityFilter) return false;
       if (companyFilter && job.companySlug !== companyFilter) return false;
       if (departmentFilter && job.department !== departmentFilter) return false;
+      if (kindFilter && inferKind(job) !== kindFilter) return false;
+      if (streamFilter) {
+        const blob = `${job.stream ?? ""} ${job.title} ${job.department}`;
+        if (!blob.includes(streamFilter) && !blob.toLowerCase().includes(streamFilter.toLowerCase())) {
+          return false;
+        }
+      }
       return true;
     });
 
@@ -64,16 +79,41 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
         ? fitScore(b, q) - fitScore(a, q)
         : (Date.parse(b.postedAt ?? "") || 0) - (Date.parse(a.postedAt ?? "") || 0),
     );
-  }, [jobs, q, city, company, department, intent, sort]);
+  }, [jobs, q, city, company, department, kind, stream, intent, sort]);
 
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
-  const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const understood = [intent.city, companies.find((item) => item.slug === intent.company)?.name]
+  const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const rangeStart = filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, filtered.length);
+
+  useEffect(() => {
+    setPageDraft(String(currentPage));
+  }, [currentPage]);
+
+  function goToPage(next: number) {
+    const clamped = Math.max(1, Math.min(pages, Math.floor(next) || 1));
+    setPage(clamped);
+    setPageDraft(String(clamped));
+    const board = document.getElementById("board");
+    if (board) board.scrollIntoView({ behavior: "smooth", block: "start" });
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function commitPageDraft() {
+    goToPage(Number(pageDraft));
+  }
+
+  const understood = [
+    intent.kind,
+    intent.stream,
+    intent.city,
+    companies.find((item) => item.slug === intent.company)?.name,
+  ]
     .filter(Boolean)
     .join(" · ");
   const cityOptions = CITIES.filter((item) => jobs.some((job) => job.city === item));
-  const activeFilters = [city, company, department].filter(Boolean).length;
+  const activeFilters = [city, company, department, kind, stream].filter(Boolean).length;
 
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -85,6 +125,28 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
 
   const filters = (
     <div className="space-y-6">
+      <FilterGroup label="Category">
+        <FilterChip active={!kind} onClick={() => setParam("kind", "")} label="All" />
+        {JOB_KINDS.map((item) => (
+          <FilterChip
+            key={item.id}
+            active={kind === item.id}
+            onClick={() => setParam("kind", kind === item.id ? "" : item.id)}
+            label={item.label}
+          />
+        ))}
+      </FilterGroup>
+      <FilterGroup label="Stream">
+        <FilterChip active={!stream} onClick={() => setParam("stream", "")} label="All streams" />
+        {STREAMS.map((item) => (
+          <FilterChip
+            key={item}
+            active={stream === item}
+            onClick={() => setParam("stream", stream === item ? "" : item)}
+            label={item}
+          />
+        ))}
+      </FilterGroup>
       <FilterGroup label="City">
         <FilterChip active={!city} onClick={() => setParam("city", "")} label="All India" />
         {cityOptions.map((item) => (
@@ -107,13 +169,13 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
           />
         ))}
       </FilterGroup>
-      <FilterGroup label="House">
+      <FilterGroup label="Employer">
         <select
           value={company}
           onChange={(event) => setParam("company", event.target.value)}
           className="h-12 w-full max-w-full border border-line bg-bg px-3 text-sm text-text outline-none"
         >
-          <option value="">All houses</option>
+          <option value="">All employers</option>
           {companies.map((item) => (
             <option key={item.slug} value={item.slug}>
               {item.name} ({item.count})
@@ -125,15 +187,31 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
   );
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside className="hidden lg:block">
-        <div className="sticky top-24 border border-line bg-surface p-5">{filters}</div>
+        <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto border border-line bg-surface p-5">
+          {filters}
+        </div>
       </aside>
 
       <div className="min-w-0">
         <SearchBar defaultQuery={q} compact jobs={jobs} />
 
-        <div className="-mx-4 mt-4 lg:hidden">
+        <div className="-mx-4 mt-4">
+          <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1 snap-x">
+            <FilterChip active={!kind} onClick={() => setParam("kind", "")} label="All" />
+            {JOB_KINDS.map((item) => (
+              <FilterChip
+                key={item.id}
+                active={kind === item.id}
+                onClick={() => setParam("kind", kind === item.id ? "" : item.id)}
+                label={item.label}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="-mx-4 mt-2 lg:hidden">
           <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1 snap-x">
             <FilterChip active={!city} onClick={() => setParam("city", "")} label="All India" />
             {cityOptions.map((item) => (
@@ -149,7 +227,7 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
 
         <div className="mt-4 flex items-center gap-3">
           <p className="min-w-0 flex-1 truncate text-sm text-muted">
-            <span className="text-text">{filtered.length}</span> roles
+            <span className="text-text">{filtered.length.toLocaleString("en-IN")}</span> roles
           </p>
           <div className="flex shrink-0 items-center gap-3 text-[11px] tracking-[0.12em] uppercase">
             <button
@@ -208,7 +286,7 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
                   className="h-11 flex-1 border border-line text-sm"
                   onClick={() => {
                     setPage(1);
-                    navigate("/jobs", { replace: true });
+                    navigate(pathname, { replace: true });
                     setSheetOpen(false);
                   }}
                 >
@@ -219,7 +297,7 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
                   className="h-11 flex-1 bg-wine text-sm tracking-[0.12em] uppercase"
                   onClick={() => setSheetOpen(false)}
                 >
-                  Show {filtered.length}
+                  Show {filtered.length.toLocaleString("en-IN")}
                 </button>
               </div>
             </div>
@@ -228,7 +306,7 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
 
         {visible.length === 0 ? (
           <p className="mt-4 border border-dashed border-line px-4 py-12 text-center text-muted">
-            Nothing matched. Try “remote AI Bengaluru”.
+            Nothing matched. Try “fresher typing”, “excel MIS”, or “B.Com accounts”.
           </p>
         ) : (
           <div className="mt-4 grid gap-3">
@@ -238,33 +316,74 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
           </div>
         )}
 
-        {pages > 1 ? (
-          <div className="mt-6 mb-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => {
-                setPage((value) => Math.max(1, value - 1));
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="h-11 border border-line text-sm disabled:opacity-40"
-            >
-              Prev
-            </button>
-            <span className="text-sm text-muted">
-              {currentPage} / {pages}
-            </span>
-            <button
-              type="button"
-              disabled={currentPage === pages}
-              onClick={() => {
-                setPage((value) => Math.min(pages, value + 1));
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="h-11 border border-line text-sm disabled:opacity-40"
-            >
-              Next
-            </button>
+        {filtered.length > 0 ? (
+          <div className="mt-6 mb-2 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
+              <p>
+                Showing{" "}
+                <span className="text-text">
+                  {rangeStart.toLocaleString("en-IN")}–{rangeEnd.toLocaleString("en-IN")}
+                </span>{" "}
+                of {filtered.length.toLocaleString("en-IN")}
+              </p>
+              <label className="flex items-center gap-2">
+                <span className="text-[11px] tracking-[0.12em] uppercase">Per page</span>
+                <select
+                  value={pageSize}
+                  onChange={(event) =>
+                    setPageSize(Number(event.target.value) as (typeof PAGE_SIZES)[number])
+                  }
+                  className="h-9 border border-line bg-bg px-2 text-sm text-text outline-none"
+                >
+                  {PAGE_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {pages > 1 ? (
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => goToPage(currentPage - 1)}
+                  className="h-11 border border-line text-sm disabled:opacity-40"
+                >
+                  Prev
+                </button>
+                <form
+                  className="flex items-center gap-1.5 text-sm text-muted"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    commitPageDraft();
+                  }}
+                >
+                  <input
+                    type="number"
+                    min={1}
+                    max={pages}
+                    inputMode="numeric"
+                    value={pageDraft}
+                    onChange={(event) => setPageDraft(event.target.value)}
+                    onBlur={commitPageDraft}
+                    aria-label="Page number"
+                    className="h-11 w-14 border border-line bg-bg text-center text-text outline-none"
+                  />
+                  <span>/ {pages.toLocaleString("en-IN")}</span>
+                </form>
+                <button
+                  type="button"
+                  disabled={currentPage === pages}
+                  onClick={() => goToPage(currentPage + 1)}
+                  className="h-11 border border-line text-sm disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

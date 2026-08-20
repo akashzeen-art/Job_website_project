@@ -15,6 +15,10 @@ const FLAGSHIP = new Set([
 ]);
 
 const TAGS: { tag: string; pattern: RegExp }[] = [
+  { tag: "Fresher", pattern: /\b(fresher|trainee|graduate|entry.?level|intern)\b/i },
+  { tag: "Freelance", pattern: /\b(freelance|gig|part.?time|wfh)\b/i },
+  { tag: "Typing", pattern: /\b(typing|typist|data entry|form filling)\b/i },
+  { tag: "Excel", pattern: /\b(excel|spreadsheet|mis|vlookup|pivot)\b/i },
   { tag: "Staff+", pattern: /\b(staff|principal|distinguished|director|head of)\b/i },
   { tag: "Senior", pattern: /\b(senior|sr\.?)\b/i },
   { tag: "ML / AI", pattern: /\b(machine learning|deep learning|genai|llm|\bai\b|\bml\b)\b/i },
@@ -83,10 +87,12 @@ export function fitWhy(job: Job, query = ""): string {
 }
 
 export const PROMPTS = [
-  "Senior backend Bengaluru",
-  "NVIDIA chip design",
-  "Remote India AI",
-  "Product manager Stripe",
-  "Sales Hyderabad",
-  "Data engineer Databricks",
+  "Fresher typing jobs",
+  "Excel MIS Bengaluru",
+  "Freelance data entry WFH",
+  "B.Com fresher accounts",
+  "B.Tech graduate trainee",
+  "Part time typing Hyderabad",
+  "12th pass office assistant",
+  "MBA fresher marketing",
 ];

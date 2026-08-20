@@ -1,10 +1,11 @@
-import { COMPANIES, COMPANY_BY_SLUG } from "@/lib/companies";
+import { buildCatalogJobs } from "@/lib/catalog";
+import { LIVE_ATS_COMPANIES, COMPANY_BY_SLUG } from "@/lib/companies";
 import { encodeJobId } from "@/lib/ids";
 import { decodeGreenhouseHtml, sanitizeHtml } from "@/lib/html";
 import { inferDepartment, mentionsIndia, normalizeCity } from "@/lib/india";
 import type { Company, Job, JobDetail } from "@/lib/types";
 
-const CACHE_KEY = "meridian:jobs-cache:v2";
+const CACHE_KEY = "meridian:jobs-cache:v3";
 const CACHE_MS = 30 * 60 * 1000;
 
 type CachedPayload = {
@@ -266,8 +267,10 @@ function writeCache(jobs: Job[]) {
 export async function fetchAllJobs(): Promise<Job[]> {
   const cached = readCache();
   if (cached) return cached.jobs;
-  const groups = await mapPool(COMPANIES, 8, fetchCompanyJobs);
-  const jobs = uniqueJobs(groups.flat());
+  const catalog = buildCatalogJobs();
+  const groups = await mapPool(LIVE_ATS_COMPANIES, 8, fetchCompanyJobs);
+  const live = groups.flat().map((job) => ({ ...job, kind: "global" as const, stream: null }));
+  const jobs = uniqueJobs([...catalog, ...live]);
   writeCache(jobs);
   return jobs;
 }
@@ -301,6 +304,15 @@ async function fetchDescription(job: Job, company: Company): Promise<string> {
         `/ats/wd/${board.host}/wday/cxs/${board.tenant}/${board.site}${job.sourceId}`,
       )) as { jobPostingInfo?: { jobDescription?: string } };
       return sanitizeHtml(data.jobPostingInfo?.jobDescription ?? "");
+    }
+    if (job.ats === "catalog") {
+      const stream = job.stream ? `<p><strong>Stream:</strong> ${job.stream}</p>` : "";
+      return sanitizeHtml(`
+        <p>India opening for <strong>${job.title}</strong> in ${job.city}.</p>
+        <p>Category: ${job.department}. Suitable for freshers, freelancers, and office-skill seekers.</p>
+        ${stream}
+        <p>Apply opens live India listings for this role title and city. Confirm salary, shift, and WFH details with the employer before accepting.</p>
+      `);
     }
   } catch (error) {
     console.warn(

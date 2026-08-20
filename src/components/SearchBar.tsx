@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { PROMPTS } from "@/lib/insights";
 import type { Job } from "@/lib/types";
 
@@ -11,6 +11,7 @@ type Props = {
 
 export function SearchBar({ defaultQuery = "", compact = false, jobs = [] }: Props) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(defaultQuery);
   const [open, setOpen] = useState(false);
@@ -51,7 +52,9 @@ export function SearchBar({ defaultQuery = "", compact = false, jobs = [] }: Pro
       : new URLSearchParams();
     if (value) params.set("q", value);
     else params.delete("q");
-    navigate(`/jobs${params.toString() ? `?${params}` : ""}`);
+    const base = pathname === "/" ? "/" : "/jobs";
+    const queryString = params.toString() ? `?${params}` : "";
+    navigate(`${base}${queryString}${base === "/" ? "#board" : ""}`);
     setOpen(false);
   }
 

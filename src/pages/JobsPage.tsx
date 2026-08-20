@@ -18,9 +18,11 @@ export function JobsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-10">
       <p className="text-[11px] tracking-[0.24em] text-gold uppercase">The board</p>
-      <h1 className="mt-1 font-display text-[2rem] leading-tight sm:text-5xl">India, in residence</h1>
-      <p className="mt-2 hidden max-w-xl text-muted sm:block">
-        Search as you would ask a person. Filter by city when you want the room quieter.
+      <h1 className="mt-1 font-display text-[2rem] leading-tight sm:text-5xl">
+        {jobs.length.toLocaleString("en-IN")}+ India roles
+      </h1>
+      <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
+        Freelance · typing · Excel · fresher (all streams) · plus live global tech hiring in India.
       </p>
       <div className="mt-5 sm:mt-8">
         <JobsExplorer jobs={jobs} companies={companies} departments={departments} />

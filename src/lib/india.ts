@@ -7,11 +7,13 @@ const CITY_RULES: { city: string; pattern: RegExp }[] = [
   { city: "Chennai", pattern: /\bchennai\b|\bmadras\b/i },
   { city: "Kolkata", pattern: /\bkolkata\b|\bcalcutta\b/i },
   { city: "Ahmedabad", pattern: /\bahmedabad\b/i },
+  { city: "Jaipur", pattern: /\bjaipur\b/i },
+  { city: "Indore", pattern: /\bindore\b/i },
   { city: "Kochi", pattern: /\bkochi\b|\bcochin\b/i },
   { city: "Coimbatore", pattern: /\bcoimbatore\b/i },
-  { city: "Jaipur", pattern: /\bjaipur\b/i },
   { city: "Chandigarh", pattern: /\bchandigarh\b|\bmohali\b/i },
-  { city: "Indore", pattern: /\bindore\b/i },
+  { city: "Lucknow", pattern: /\blucknow\b/i },
+  { city: "Nagpur", pattern: /\bnagpur\b/i },
   { city: "Remote India", pattern: /\bremote[^\n]{0,40}india\b|\bindia[^\n]{0,20}remote\b|\bremote - india\b|\bremote, india\b/i },
 ];
 
@@ -27,7 +29,13 @@ export const CITIES = [
   "Chennai",
   "Kolkata",
   "Ahmedabad",
+  "Jaipur",
+  "Indore",
   "Kochi",
+  "Coimbatore",
+  "Chandigarh",
+  "Lucknow",
+  "Nagpur",
   "Remote India",
   "India",
 ] as const;
@@ -49,6 +57,10 @@ export function inferDepartment(title: string, given?: string | null): string {
     return given.trim();
   }
   const t = title.toLowerCase();
+  if (/\b(typist|typing|data entry|form filling|copy typing)\b/.test(t)) return "Typing & Data Entry";
+  if (/\b(excel|spreadsheet|mis |vlookup|pivot)\b/.test(t)) return "Excel & MIS";
+  if (/\b(freelance|gig|virtual assistant)\b/.test(t)) return "Freelance / WFH";
+  if (/\b(fresher|trainee|graduate|apprentice|entry.?level)\b/.test(t)) return "Fresher";
   if (/\b(account executive|sales|business development|go-to-market|gtm|customer engineer|solutions consultant)\b/.test(t)) {
     return "Sales";
   }

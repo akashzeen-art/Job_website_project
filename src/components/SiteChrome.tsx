@@ -86,7 +86,7 @@ export function Footer() {
   return (
     <footer className="border-t border-line">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <p>Roles are read from official career pages. You apply with the employer.</p>
+        <p>Fresher, freelance, typing, Excel, and live global boards. Apply with the employer.</p>
         <p className="text-[11px] tracking-[0.2em] text-gold uppercase">Est. for India desks</p>
       </div>
     </footer>

@@ -20,5 +20,6 @@ export function atsLabel(ats: string): string {
   if (ats === "greenhouse") return "Greenhouse";
   if (ats === "ashby") return "Ashby";
   if (ats === "workday") return "Workday";
+  if (ats === "catalog") return "India board";
   return ats;
 }

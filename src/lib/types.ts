@@ -1,4 +1,4 @@
-export type Ats = "greenhouse" | "ashby" | "workday";
+export type Ats = "greenhouse" | "ashby" | "workday" | "catalog";
 
 export type Company = {
   slug: string;
@@ -29,6 +29,8 @@ export type Job = {
   postedAt: string | null;
   postedLabel: string | null;
   workplaceType: string | null;
+  kind?: "fresher" | "freelance" | "typing" | "excel" | "global";
+  stream?: string | null;
 };
 
 export type JobDetail = Job & {

@@ -19,9 +19,12 @@ export function CompaniesPage() {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <p className="text-[11px] tracking-[0.24em] text-gold uppercase">Houses</p>
       <h1 className="mt-2 font-display text-4xl leading-tight sm:text-5xl">
-        International rooms, Indian desks
+        India desks and global houses
       </h1>
-      <p className="mt-3 max-w-xl text-muted">Headquarters abroad. Openings here. Counts from the live fetch.</p>
+      <p className="mt-3 max-w-xl text-muted">
+        Fresher boards, freelance desks, typing/Excel networks, and international career pages —
+        counts from the live board.
+      </p>
       <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map((company) => (
           <Link

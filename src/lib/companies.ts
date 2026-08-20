@@ -1,6 +1,7 @@
+import { CATALOG_COMPANIES } from "@/lib/catalog";
 import type { Company } from "@/lib/types";
 
-export const COMPANIES: Company[] = [
+const LIVE_COMPANIES: Company[] = [
   { slug: "okta", name: "Okta", ats: "greenhouse", token: "okta", website: "https://www.okta.com", hq: "San Francisco, USA", industry: "Identity" },
   { slug: "databricks", name: "Databricks", ats: "greenhouse", token: "databricks", website: "https://www.databricks.com", hq: "San Francisco, USA", industry: "Data & AI" },
   { slug: "mongodb", name: "MongoDB", ats: "greenhouse", token: "mongodb", website: "https://www.mongodb.com", hq: "New York, USA", industry: "Database" },
@@ -123,6 +124,10 @@ export const COMPANIES: Company[] = [
     workday: { host: "kla.wd1.myworkdayjobs.com", tenant: "kla", site: "Search" },
   },
 ];
+
+export const COMPANIES: Company[] = [...CATALOG_COMPANIES, ...LIVE_COMPANIES];
+
+export const LIVE_ATS_COMPANIES = LIVE_COMPANIES;
 
 export const COMPANY_BY_SLUG = Object.fromEntries(
   COMPANIES.map((company) => [company.slug, company]),
