@@ -8,9 +8,13 @@ export function CompaniesPage() {
   const { jobs, loading } = useJobs();
   if (loading) return <LoadingPanel />;
 
+  const counts = new Map<string, number>();
+  for (const job of jobs) {
+    counts.set(job.companySlug, (counts.get(job.companySlug) ?? 0) + 1);
+  }
   const rows = COMPANIES.map((company) => ({
     ...company,
-    count: jobs.filter((job) => job.companySlug === company.slug).length,
+    count: counts.get(company.slug) ?? 0,
   }))
     .filter((company) => company.count > 0)
     .sort((a, b) => b.count - a.count);

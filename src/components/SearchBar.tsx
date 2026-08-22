@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { PROMPTS } from "@/lib/insights";
 import type { Job } from "@/lib/types";
+import { scrollToBoard } from "@/utils/scrollToBoard";
 
 type Props = {
   defaultQuery?: string;
@@ -32,11 +33,15 @@ export function SearchBar({ defaultQuery = "", compact = false, jobs = [] }: Pro
   const suggestions = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (needle.length < 2) return [];
-    return jobs
-      .filter((job) =>
-        `${job.title} ${job.company} ${job.city}`.toLowerCase().includes(needle),
-      )
-      .slice(0, 5);
+    const out: Job[] = [];
+    for (let i = 0; i < jobs.length; i += 1) {
+      const job = jobs[i];
+      if (`${job.title} ${job.company} ${job.city}`.toLowerCase().includes(needle)) {
+        out.push(job);
+        if (out.length >= 5) break;
+      }
+    }
+    return out;
   }, [jobs, query]);
 
   function go(nextQuery: string, href?: string) {
@@ -54,7 +59,8 @@ export function SearchBar({ defaultQuery = "", compact = false, jobs = [] }: Pro
     else params.delete("q");
     const base = pathname === "/" ? "/" : "/jobs";
     const queryString = params.toString() ? `?${params}` : "";
-    navigate(`${base}${queryString}${base === "/" ? "#board" : ""}`);
+    navigate(`${base}${queryString}`);
+    if (base === "/") scrollToBoard();
     setOpen(false);
   }
 

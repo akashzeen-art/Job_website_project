@@ -1,35 +1,30 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
 import { JobCard } from "@/components/JobCard";
 import { JobsExplorer } from "@/components/JobsExplorer";
 import { ForYou } from "@/components/ForYou";
 import { LoadingPanel } from "@/components/LoadingPanel";
-import { JOB_KINDS, inferKind } from "@/lib/catalog";
+import { useSubscription } from "@/context/SubscriptionContext";
+import { categoriesFromJobs, inferKind } from "@/lib/catalog";
 import { COMPANY_BY_SLUG } from "@/lib/companies";
-import { fitScore, PROMPTS } from "@/lib/insights";
+import { PROMPTS } from "@/lib/insights";
 import { useJobs } from "@/context/JobsContext";
+import { scrollToBoard, shouldScrollToBoard } from "@/utils/scrollToBoard";
 
 export function HomePage() {
   const { jobs, loading } = useJobs();
-  if (loading) return <LoadingPanel />;
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { checkAccess } = useSubscription();
 
-  const companies = new Set(jobs.map((job) => job.companySlug));
-  const cities = new Set(jobs.map((job) => job.city));
-  const fresherCount = jobs.filter((job) => inferKind(job) === "fresher").length;
-  const picks = [...jobs]
-    .filter((job) => ["fresher", "freelance", "typing", "excel"].includes(inferKind(job)))
-    .sort((a, b) => fitScore(b) - fitScore(a))
-    .slice(0, 4);
-  const topCompanies = [...companies]
-    .map((slug) => ({
-      slug,
-      name: COMPANY_BY_SLUG[slug]?.name ?? slug,
-      count: jobs.filter((job) => job.companySlug === slug).length,
-      hq: COMPANY_BY_SLUG[slug]?.hq ?? "",
-      industry: COMPANY_BY_SLUG[slug]?.industry ?? "",
-    }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 6);
+  useEffect(() => {
+    if (shouldScrollToBoard(searchParams.toString())) {
+      scrollToBoard();
+    }
+  }, [searchParams]);
+
+  if (loading) return <LoadingPanel />;
 
   const companyCounts = new Map<string, { slug: string; name: string; count: number }>();
   for (const job of jobs) {
@@ -39,6 +34,41 @@ export function HomePage() {
   }
   const boardCompanies = [...companyCounts.values()].sort((a, b) => b.count - a.count);
   const departments = [...new Set(jobs.map((job) => job.department))].sort();
+  const cities = new Set(jobs.map((job) => job.city));
+  const categories = categoriesFromJobs(jobs);
+  let fresherCount = 0;
+  for (const job of jobs) {
+    if (job.kind === "fresher") fresherCount += 1;
+  }
+  const topCompanies = boardCompanies.slice(0, 6).map((row) => ({
+    ...row,
+    hq: COMPANY_BY_SLUG[row.slug]?.hq ?? "",
+    industry: COMPANY_BY_SLUG[row.slug]?.industry ?? "",
+  }));
+
+  const picks: typeof jobs = [];
+  const seenKinds = new Set<string>();
+  for (const job of jobs) {
+    const kind = job.kind ?? inferKind(job);
+    if (kind === "global" || seenKinds.has(kind)) continue;
+    seenKinds.add(kind);
+    picks.push(job);
+    if (picks.length >= 4) break;
+  }
+
+  async function openCategory(kind: string, event: React.MouseEvent) {
+    event.preventDefault();
+    const target = `/?kind=${kind}`;
+    const allowed = await checkAccess({ type: "navigate", to: target });
+    if (allowed) navigate(target);
+  }
+
+  async function openPrompt(prompt: string, event: React.MouseEvent) {
+    event.preventDefault();
+    const target = `/?q=${encodeURIComponent(prompt)}`;
+    const allowed = await checkAccess({ type: "navigate", to: target });
+    if (allowed) navigate(target);
+  }
 
   return (
     <div>
@@ -48,41 +78,50 @@ export function HomePage() {
             India · {jobs.length.toLocaleString("en-IN")}+ roles · fresher to freelance
           </p>
           <h1 className="mt-5 max-w-3xl font-display text-[2.6rem] leading-[1.08] text-text sm:text-6xl lg:text-7xl">
-            Freelancing, typing, Excel, and fresher jobs — every stream.
+            Survey, data entry, typing, content, WFH & freelance — 10,000+ India roles.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-muted sm:text-lg sm:leading-8">
-            B.Tech, B.Com, BBA, Arts, Diploma, 12th pass, ITI — plus WFH typing, Excel MIS, and
-            freelance desk work. Live global tech boards sit beside them.
+            Plus Excel, fresher jobs for every stream, and live global tech boards. Browse filters
+            without waiting on network.
           </p>
           <div className="mt-8 max-w-2xl">
             <SearchBar jobs={jobs} />
             <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
-              {JOB_KINDS.filter((item) => item.id !== "global").map((item) => (
-                <Link
+              {categories.map((item) => (
+                <button
                   key={item.id}
-                  to={`/?kind=${item.id}#board`}
+                  type="button"
+                  onClick={(event) => openCategory(item.id, event)}
                   className="shrink-0 border border-line px-3 py-2 text-xs text-muted hover:border-gold hover:text-text"
                 >
                   {item.label}
-                </Link>
+                  <span className="ml-1.5 text-gold">{item.count.toLocaleString("en-IN")}</span>
+                </button>
               ))}
               {PROMPTS.slice(0, 3).map((prompt) => (
-                <Link
+                <button
                   key={prompt}
-                  to={`/?q=${encodeURIComponent(prompt)}#board`}
+                  type="button"
+                  onClick={(event) => openPrompt(prompt, event)}
                   className="shrink-0 border border-line px-3 py-2 text-xs text-muted hover:border-gold hover:text-text"
                 >
                   {prompt}
-                </Link>
+                </button>
               ))}
             </div>
           </div>
           <dl className="mt-10 flex max-w-2xl divide-x divide-line border-y border-line">
             <Stat value={jobs.length} label="Roles" />
             <Stat value={fresherCount} label="Fresher" />
-            <Stat value={companies.size} label="Desks" />
+            <Stat value={boardCompanies.length} label="Desks" />
             <Stat value={cities.size} label="Cities" />
           </dl>
+          <Link
+            to="/checkout"
+            className="mt-8 inline-flex h-12 items-center bg-wine px-5 text-xs tracking-[0.16em] text-text uppercase"
+          >
+            Start 4-step hiring match →
+          </Link>
         </div>
       </section>
 
@@ -92,9 +131,9 @@ export function HomePage() {
           <h2 className="mt-1 font-display text-[2rem] leading-tight sm:text-5xl">
             {jobs.length.toLocaleString("en-IN")}+ India roles
           </h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
-            Freelance · typing · Excel · fresher (all streams) · plus live global tech hiring in India.
-          </p>
+      <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
+        Survey · data entry · typing · content · WFH · freelance · Excel · fresher — plus live global tech.
+      </p>
           <div className="mt-5 sm:mt-8">
             <JobsExplorer jobs={jobs} companies={boardCompanies} departments={departments} />
           </div>
@@ -108,7 +147,7 @@ export function HomePage() {
             <p className="text-[11px] tracking-[0.22em] text-gold uppercase">Start here</p>
             <h2 className="mt-1 font-display text-3xl sm:text-4xl">Typing · Excel · Fresher</h2>
           </div>
-          <Link to="/?kind=fresher#board" className="shrink-0 text-sm text-gold">
+          <Link to="/?kind=fresher" className="shrink-0 text-sm text-gold">
             Open fresher board
           </Link>
         </div>

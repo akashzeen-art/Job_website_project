@@ -1,5 +1,5 @@
 import { COMPANIES } from "@/lib/companies";
-import { JOB_KINDS, type JobKind } from "@/lib/catalog";
+import { kindLabel, type JobKind } from "@/lib/catalog";
 
 export type ParsedIntent = {
   q: string;
@@ -18,13 +18,20 @@ const CITY_ALIASES: { city: string; pattern: RegExp }[] = [
   { city: "Pune", pattern: /\bpune\b/i },
   { city: "Chennai", pattern: /\b(chennai|madras)\b/i },
   { city: "Kolkata", pattern: /\b(kolkata|calcutta)\b/i },
+  { city: "Ahmedabad", pattern: /\bahmedabad\b/i },
+  { city: "Jaipur", pattern: /\bjaipur\b/i },
+  { city: "Indore", pattern: /\bindore\b/i },
   { city: "Remote India", pattern: /\b(remote|wfh|work from home)\b/i },
 ];
 
 const KIND_ALIASES: { kind: JobKind; pattern: RegExp }[] = [
-  { kind: "typing", pattern: /\b(typing|typist|data entry|form filling)\b/i },
-  { kind: "excel", pattern: /\b(excel|spreadsheet|mis|vlookup|pivot)\b/i },
+  { kind: "survey", pattern: /\bsurveys?\b/i },
+  { kind: "dataentry", pattern: /\b(data\s*entry|dataentry)\b/i },
+  { kind: "typing", pattern: /\b(typing|typist)\b/i },
+  { kind: "content", pattern: /\b(content|copywrit|blog writer|seo writer)\b/i },
+  { kind: "wfh", pattern: /\b(wfh|work from home)\b/i },
   { kind: "freelance", pattern: /\b(freelance|freelancer|gig)\b/i },
+  { kind: "excel", pattern: /\b(excel|spreadsheet|mis|vlookup|pivot)\b/i },
   { kind: "fresher", pattern: /\b(fresher|freshers|trainee|campus|graduate trainee)\b/i },
   { kind: "global", pattern: /\b(global tech|greenhouse|nvidia|stripe)\b/i },
 ];
@@ -43,16 +50,17 @@ const STREAM_ALIASES: { stream: string; pattern: RegExp }[] = [
 ];
 
 const DEPARTMENTS: { department: string; pattern: RegExp }[] = [
-  { department: "Typing & Data Entry", pattern: /\b(typing|data entry)\b/i },
-  { department: "Excel & MIS", pattern: /\b(excel|mis)\b/i },
-  { department: "Freelance / WFH", pattern: /\b(freelance|wfh)\b/i },
   { department: "Engineering", pattern: /\b(engineer|developer|software|backend|frontend|sre)\b/i },
-  { department: "Data & AI", pattern: /\b(data|ml|ai|machine learning|scientist)\b/i },
-  { department: "Product", pattern: /\b(product manager|product)\b/i },
-  { department: "Sales", pattern: /\b(sales|account executive|gtm)\b/i },
-  { department: "Design", pattern: /\b(design|designer|ux|ui)\b/i },
+  { department: "Data & AI", pattern: /\b(machine learning|data scientist|\bml\b|\bai\b)\b/i },
+  { department: "Product", pattern: /\b(product manager|product owner)\b/i },
+  { department: "Sales", pattern: /\b(account executive|sales|gtm)\b/i },
+  { department: "Design", pattern: /\b(designer|ux|ui)\b/i },
   { department: "Marketing", pattern: /\b(marketing|brand|growth)\b/i },
 ];
+
+function scrub(q: string, pattern: RegExp): string {
+  return q.replace(pattern, " ");
+}
 
 export function parseIntent(raw: string): ParsedIntent {
   let q = raw.trim();
@@ -65,7 +73,6 @@ export function parseIntent(raw: string): ParsedIntent {
   for (const rule of CITY_ALIASES) {
     if (rule.pattern.test(q)) {
       city = rule.city;
-      q = q.replace(rule.pattern, " ");
       break;
     }
   }
@@ -91,24 +98,33 @@ export function parseIntent(raw: string): ParsedIntent {
     ) ?? COMPANIES.find((item) => new RegExp(`\\b${item.slug}\\b`, "i").test(q));
   if (companyHit) {
     company = companyHit.slug;
-    q = q.replace(new RegExp(companyHit.name, "i"), " ");
-    q = q.replace(new RegExp(companyHit.slug.replace(/-/g, "[- ]?"), "i"), " ");
   }
 
-  for (const rule of DEPARTMENTS) {
-    if (rule.pattern.test(q)) {
-      department = rule.department;
-      break;
+  // Strip structured matches so they are not also required as free-text tokens.
+  for (const rule of CITY_ALIASES) q = scrub(q, rule.pattern);
+  for (const rule of KIND_ALIASES) q = scrub(q, rule.pattern);
+  for (const rule of STREAM_ALIASES) q = scrub(q, rule.pattern);
+  if (companyHit) {
+    q = scrub(q, new RegExp(companyHit.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+    q = scrub(q, new RegExp(companyHit.slug.replace(/-/g, "[- ]?"), "i"));
+  }
+
+  if (!kind) {
+    for (const rule of DEPARTMENTS) {
+      if (rule.pattern.test(q)) {
+        department = rule.department;
+        q = scrub(q, rule.pattern);
+        break;
+      }
     }
   }
 
   q = q
-    .replace(/\b(in|at|for|jobs?|roles?|india|related|all stream|streams?)\b/gi, " ")
+    .replace(/\b(in|at|for|jobs?|roles?|india|related|all stream|streams?|writer|online|part[-\s]?time)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+
   return { q, city, company, department, kind, stream };
 }
 
-export function kindLabel(kind: JobKind): string {
-  return JOB_KINDS.find((item) => item.id === kind)?.label ?? kind;
-}
+export { kindLabel };

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { JOB_KINDS, STREAMS, inferKind } from "@/lib/catalog";
+import { categoriesFromJobs, inferKind, streamsFromJobs } from "@/lib/catalog";
 import { CITIES } from "@/lib/india";
 import { parseIntent } from "@/lib/intent";
 import { fitScore } from "@/lib/insights";
@@ -33,6 +33,13 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
   const kind = searchParams.get("kind") ?? "";
   const stream = searchParams.get("stream") ?? "";
   const intent = useMemo(() => parseIntent(q), [q]);
+  const deferredQ = useDeferredValue(q);
+  const deferredCity = useDeferredValue(city);
+  const deferredCompany = useDeferredValue(company);
+  const deferredDepartment = useDeferredValue(department);
+  const deferredKind = useDeferredValue(kind);
+  const deferredStream = useDeferredValue(stream);
+  const deferredIntent = useDeferredValue(intent);
 
   useEffect(() => {
     setPage(1);
@@ -47,39 +54,58 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
   }, [sheetOpen]);
 
   const filtered = useMemo(() => {
-    const cityFilter = city || intent.city || "";
-    const companyFilter = company || intent.company || "";
-    const departmentFilter = department || "";
-    const kindFilter = kind || intent.kind || "";
-    const streamFilter = stream || intent.stream || "";
-    const text = (company ? q : intent.q).trim().toLowerCase();
+    // URL params win; intent only fills gaps. Text is always the cleaned leftover from q.
+    const cityFilter = deferredCity || deferredIntent.city || "";
+    const companyFilter = deferredCompany || deferredIntent.company || "";
+    const departmentFilter = deferredDepartment || deferredIntent.department || "";
+    const kindFilter = deferredKind || deferredIntent.kind || "";
+    const streamFilter = deferredStream || deferredIntent.stream || "";
+    const text = deferredIntent.q.trim().toLowerCase();
+    const tokens = text ? text.split(/\s+/).filter((token) => token.length > 1) : [];
 
-    const next = jobs.filter((job) => {
-      if (text) {
-        const haystack =
-          `${job.title} ${job.company} ${job.location} ${job.department} ${job.stream ?? ""}`.toLowerCase();
-        const tokens = text.split(/\s+/).filter(Boolean);
-        if (!tokens.every((token) => haystack.includes(token))) return false;
-      }
-      if (cityFilter && job.city !== cityFilter) return false;
-      if (companyFilter && job.companySlug !== companyFilter) return false;
-      if (departmentFilter && job.department !== departmentFilter) return false;
-      if (kindFilter && inferKind(job) !== kindFilter) return false;
+    const next: Job[] = [];
+    for (let i = 0; i < jobs.length; i += 1) {
+      const job = jobs[i];
+      if (kindFilter && (job.kind ?? inferKind(job)) !== kindFilter) continue;
+      if (cityFilter && job.city !== cityFilter) continue;
+      if (companyFilter && job.companySlug !== companyFilter) continue;
+      if (departmentFilter && job.department !== departmentFilter) continue;
       if (streamFilter) {
         const blob = `${job.stream ?? ""} ${job.title} ${job.department}`;
-        if (!blob.includes(streamFilter) && !blob.toLowerCase().includes(streamFilter.toLowerCase())) {
-          return false;
-        }
+        if (!blob.toLowerCase().includes(streamFilter.toLowerCase())) continue;
       }
-      return true;
-    });
+      if (tokens.length) {
+        const haystack =
+          `${job.title} ${job.company} ${job.location} ${job.department} ${job.stream ?? ""}`.toLowerCase();
+        if (!tokens.every((token) => haystack.includes(token))) continue;
+      }
+      next.push(job);
+    }
 
-    return next.sort((a, b) =>
-      sort === "fit"
-        ? fitScore(b, q) - fitScore(a, q)
-        : (Date.parse(b.postedAt ?? "") || 0) - (Date.parse(a.postedAt ?? "") || 0),
-    );
-  }, [jobs, q, city, company, department, kind, stream, intent, sort]);
+    if (sort === "new") {
+      return next.sort(
+        (a, b) => (Date.parse(b.postedAt ?? "") || 0) - (Date.parse(a.postedAt ?? "") || 0),
+      );
+    }
+    if (!deferredQ.trim()) return next;
+    return next.sort((a, b) => fitScore(b, deferredQ) - fitScore(a, deferredQ));
+  }, [
+    jobs,
+    deferredQ,
+    deferredCity,
+    deferredCompany,
+    deferredDepartment,
+    deferredKind,
+    deferredStream,
+    deferredIntent,
+    sort,
+  ]);
+
+  const activeKind = kind || intent.kind || "";
+  const activeCity = city || intent.city || "";
+  const activeStream = stream || intent.stream || "";
+  const activeCompany = company || intent.company || "";
+  const activeDepartment = department || intent.department || "";
 
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
@@ -105,73 +131,96 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
   }
 
   const understood = [
-    intent.kind,
-    intent.stream,
-    intent.city,
-    companies.find((item) => item.slug === intent.company)?.name,
+    activeKind,
+    activeStream,
+    activeCity,
+    companies.find((item) => item.slug === activeCompany)?.name,
   ]
     .filter(Boolean)
     .join(" · ");
-  const cityOptions = CITIES.filter((item) => jobs.some((job) => job.city === item));
-  const activeFilters = [city, company, department, kind, stream].filter(Boolean).length;
+  const categories = useMemo(() => categoriesFromJobs(jobs), [jobs]);
+  const streamOptions = useMemo(() => streamsFromJobs(jobs), [jobs]);
+  const cityOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const job of jobs) counts.set(job.city, (counts.get(job.city) ?? 0) + 1);
+    return CITIES.filter((item) => (counts.get(item) ?? 0) > 0).map((item) => ({
+      id: item,
+      count: counts.get(item) ?? 0,
+    }));
+  }, [jobs]);
+  const activeFilters = [activeCity, activeCompany, activeDepartment, activeKind, activeStream].filter(
+    Boolean,
+  ).length;
 
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    // Structured filters replace free-text so leftover intent words cannot zero out results.
+    if (key === "kind" || key === "city" || key === "stream" || key === "company" || key === "department") {
+      params.delete("q");
+    }
     const query = params.toString();
     navigate(query ? `${pathname}?${query}` : pathname, { replace: true });
+  }
+
+  function clearFilters() {
+    setPage(1);
+    navigate(pathname, { replace: true });
+    setSheetOpen(false);
   }
 
   const filters = (
     <div className="space-y-6">
       <FilterGroup label="Category">
-        <FilterChip active={!kind} onClick={() => setParam("kind", "")} label="All" />
-        {JOB_KINDS.map((item) => (
+        <FilterChip active={!activeKind} onClick={() => setParam("kind", "")} label="All" />
+        {categories.map((item) => (
           <FilterChip
             key={item.id}
-            active={kind === item.id}
-            onClick={() => setParam("kind", kind === item.id ? "" : item.id)}
-            label={item.label}
+            active={activeKind === item.id}
+            onClick={() => setParam("kind", activeKind === item.id ? "" : item.id)}
+            label={`${item.label} (${item.count.toLocaleString("en-IN")})`}
           />
         ))}
       </FilterGroup>
-      <FilterGroup label="Stream">
-        <FilterChip active={!stream} onClick={() => setParam("stream", "")} label="All streams" />
-        {STREAMS.map((item) => (
-          <FilterChip
-            key={item}
-            active={stream === item}
-            onClick={() => setParam("stream", stream === item ? "" : item)}
-            label={item}
-          />
-        ))}
-      </FilterGroup>
+      {streamOptions.length > 0 ? (
+        <FilterGroup label="Stream">
+          <FilterChip active={!activeStream} onClick={() => setParam("stream", "")} label="All streams" />
+          {streamOptions.map((item) => (
+            <FilterChip
+              key={item.id}
+              active={activeStream === item.id}
+              onClick={() => setParam("stream", activeStream === item.id ? "" : item.id)}
+              label={`${item.id} (${item.count.toLocaleString("en-IN")})`}
+            />
+          ))}
+        </FilterGroup>
+      ) : null}
       <FilterGroup label="City">
-        <FilterChip active={!city} onClick={() => setParam("city", "")} label="All India" />
+        <FilterChip active={!activeCity} onClick={() => setParam("city", "")} label="All India" />
         {cityOptions.map((item) => (
           <FilterChip
-            key={item}
-            active={city === item}
-            onClick={() => setParam("city", city === item ? "" : item)}
-            label={item}
+            key={item.id}
+            active={activeCity === item.id}
+            onClick={() => setParam("city", activeCity === item.id ? "" : item.id)}
+            label={`${item.id} (${item.count.toLocaleString("en-IN")})`}
           />
         ))}
       </FilterGroup>
       <FilterGroup label="Function">
-        <FilterChip active={!department} onClick={() => setParam("department", "")} label="All" />
+        <FilterChip active={!activeDepartment} onClick={() => setParam("department", "")} label="All" />
         {departments.map((item) => (
           <FilterChip
             key={item}
-            active={department === item}
-            onClick={() => setParam("department", department === item ? "" : item)}
+            active={activeDepartment === item}
+            onClick={() => setParam("department", activeDepartment === item ? "" : item)}
             label={item}
           />
         ))}
       </FilterGroup>
       <FilterGroup label="Employer">
         <select
-          value={company}
+          value={activeCompany}
           onChange={(event) => setParam("company", event.target.value)}
           className="h-12 w-full max-w-full border border-line bg-bg px-3 text-sm text-text outline-none"
         >
@@ -199,13 +248,13 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
 
         <div className="-mx-4 mt-4">
           <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1 snap-x">
-            <FilterChip active={!kind} onClick={() => setParam("kind", "")} label="All" />
-            {JOB_KINDS.map((item) => (
+            <FilterChip active={!activeKind} onClick={() => setParam("kind", "")} label="All" />
+            {categories.map((item) => (
               <FilterChip
                 key={item.id}
-                active={kind === item.id}
-                onClick={() => setParam("kind", kind === item.id ? "" : item.id)}
-                label={item.label}
+                active={activeKind === item.id}
+                onClick={() => setParam("kind", activeKind === item.id ? "" : item.id)}
+                label={`${item.label} · ${item.count.toLocaleString("en-IN")}`}
               />
             ))}
           </div>
@@ -213,13 +262,13 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
 
         <div className="-mx-4 mt-2 lg:hidden">
           <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1 snap-x">
-            <FilterChip active={!city} onClick={() => setParam("city", "")} label="All India" />
+            <FilterChip active={!activeCity} onClick={() => setParam("city", "")} label="All India" />
             {cityOptions.map((item) => (
               <FilterChip
-                key={item}
-                active={city === item}
-                onClick={() => setParam("city", city === item ? "" : item)}
-                label={item}
+                key={item.id}
+                active={activeCity === item.id}
+                onClick={() => setParam("city", activeCity === item.id ? "" : item.id)}
+                label={item.id}
               />
             ))}
           </div>
@@ -284,11 +333,7 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
                 <button
                   type="button"
                   className="h-11 flex-1 border border-line text-sm"
-                  onClick={() => {
-                    setPage(1);
-                    navigate(pathname, { replace: true });
-                    setSheetOpen(false);
-                  }}
+                  onClick={clearFilters}
                 >
                   Clear
                 </button>
@@ -305,9 +350,12 @@ export function JobsExplorer({ jobs, companies, departments }: Props) {
         ) : null}
 
         {visible.length === 0 ? (
-          <p className="mt-4 border border-dashed border-line px-4 py-12 text-center text-muted">
-            Nothing matched. Try “fresher typing”, “excel MIS”, or “B.Com accounts”.
-          </p>
+          <div className="mt-4 border border-dashed border-line px-4 py-12 text-center">
+            <p className="text-muted">Nothing matched for these filters.</p>
+            <button type="button" className="mt-4 text-sm text-gold" onClick={clearFilters}>
+              Clear filters
+            </button>
+          </div>
         ) : (
           <div className="mt-4 grid gap-3">
             {visible.map((job) => (

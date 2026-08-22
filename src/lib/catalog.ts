@@ -1,13 +1,25 @@
-import { encodeJobId } from "@/lib/ids";
 import type { Ats, Job } from "@/lib/types";
 
-export type JobKind = "fresher" | "freelance" | "typing" | "excel" | "global";
+export type JobKind =
+  | "survey"
+  | "dataentry"
+  | "typing"
+  | "content"
+  | "wfh"
+  | "freelance"
+  | "excel"
+  | "fresher"
+  | "global";
 
 export const JOB_KINDS: { id: JobKind; label: string }[] = [
-  { id: "fresher", label: "Fresher" },
-  { id: "freelance", label: "Freelance" },
+  { id: "survey", label: "Survey" },
+  { id: "dataentry", label: "Data entry" },
   { id: "typing", label: "Typing" },
+  { id: "content", label: "Content" },
+  { id: "wfh", label: "WFH" },
+  { id: "freelance", label: "Freelance" },
   { id: "excel", label: "Excel" },
+  { id: "fresher", label: "Fresher" },
   { id: "global", label: "Global tech" },
 ];
 
@@ -40,6 +52,8 @@ const CITIES = [
   "Chandigarh",
   "Lucknow",
   "Nagpur",
+  "Bhopal",
+  "Patna",
   "Remote India",
 ] as const;
 
@@ -57,135 +71,160 @@ const EMPLOYERS: Employer[] = [
   { slug: "campus-hire-india", name: "Campus Hire India", industry: "Fresher Hiring", website: "https://in.indeed.com" },
   { slug: "freelance-india-board", name: "Freelance India Board", industry: "Freelance", website: "https://in.indeed.com" },
   { slug: "excel-talent-pool", name: "Excel Talent Pool", industry: "Data & Excel", website: "https://in.indeed.com" },
-  { slug: "typing-speed-desk", name: "Typing Speed Desk", industry: "Data Entry", website: "https://in.indeed.com" },
+  { slug: "typing-speed-desk", name: "Typing Speed Desk", industry: "Typing", website: "https://in.indeed.com" },
+  { slug: "data-entry-india", name: "Data Entry India", industry: "Data Entry", website: "https://in.indeed.com" },
+  { slug: "survey-panel-india", name: "Survey Panel India", industry: "Surveys", website: "https://in.indeed.com" },
+  { slug: "content-desk-india", name: "Content Desk India", industry: "Content", website: "https://in.indeed.com" },
   { slug: "graduate-first-desk", name: "Graduate First Desk", industry: "Entry Level", website: "https://in.indeed.com" },
   { slug: "skill-bridge-india", name: "Skill Bridge India", industry: "Skilling", website: "https://in.indeed.com" },
-  { slug: "city-ops-collective", name: "City Ops Collective", industry: "Operations", website: "https://in.indeed.com" },
 ];
 
-const TYPING_TITLES = [
-  "Online Typing Operator",
-  "Data Entry Typing Executive",
-  "English Typing Clerk",
-  "Hindi Typing Operator",
-  "Form Filling & Typing Associate",
-  "PDF Typing Specialist",
-  "Court Typing Assistant",
-  "Medical Typing Operator",
-  "WFH Typing Jobs — Part Time",
-  "Night Shift Typing Executive",
-  "Copy Typing Associate",
-  "Transcription & Typing Freelancer",
-  "Speed Typing Operator (40+ WPM)",
-  "Back Office Typing Staff",
-  "Invoice Typing Executive",
-];
-
-const EXCEL_TITLES = [
-  "MS Excel Data Analyst — Fresher",
-  "Excel MIS Executive",
-  "Advanced Excel Operator",
-  "Excel & Google Sheets Associate",
-  "VLOOKUP / Pivot Table Specialist",
-  "Accounts Excel Assistant",
-  "Inventory Excel Executive",
-  "Excel Reporting Analyst",
-  "HR Excel MIS Executive",
-  "Sales Excel Tracker Executive",
-  "Excel Data Cleaning Associate",
-  "Spreadsheet Fresher — WFH",
-  "Excel Billing Executive",
-  "Financial Excel Assistant",
-  "Excel Dashboard Junior Analyst",
-];
-
-const FREELANCE_TITLES = [
-  "Freelance Data Entry",
-  "Freelance Typing Projects",
-  "Freelance Excel Sheet Work",
-  "Freelance Form Filling",
-  "Freelance Content Typing",
-  "Freelance Virtual Assistant",
-  "Freelance Online Survey Work",
-  "Freelance Caption / Subtitle Typing",
-  "Freelance Invoice Processing",
-  "Freelance Catalog Data Entry",
-  "Freelance Resume Formatting (Word/Excel)",
-  "Freelance Back Office Support",
-  "Freelance Lead List Typing",
-  "Freelance Part-Time Excel Work",
-  "Freelance Document Digitization",
-];
+const TITLES: Record<Exclude<JobKind, "global" | "fresher">, string[]> = {
+  survey: [
+    "Online Survey Participant",
+    "Paid Survey Associate",
+    "Market Research Survey Caller",
+    "Product Feedback Survey Taker",
+    "App Review Survey Worker",
+    "Customer Opinion Survey Executive",
+    "WFH Survey Panel Member",
+    "Part-Time Survey Jobs",
+    "Focus Group Survey Assistant",
+    "Brand Survey Data Collector",
+    "Student Survey Associate",
+    "Daily Survey Microtask Worker",
+    "Field Survey Assistant",
+    "Questionnaire Survey Operator",
+  ],
+  dataentry: [
+    "Data Entry Operator",
+    "Online Data Entry Executive",
+    "Form Data Entry Associate",
+    "Invoice Data Entry Clerk",
+    "Catalog Data Entry Specialist",
+    "Excel Data Entry Fresher",
+    "WFH Data Entry Jobs",
+    "Night Shift Data Entry",
+    "Bank Data Entry Assistant",
+    "Hospital Data Entry Operator",
+    "E-commerce Listing Data Entry",
+    "Numeric Data Entry Executive",
+    "Copy-Paste Data Entry Associate",
+    "Back Office Data Entry Staff",
+  ],
+  typing: [
+    "Online Typing Operator",
+    "English Typing Clerk",
+    "Hindi Typing Operator",
+    "Speed Typing Executive (40+ WPM)",
+    "PDF Typing Specialist",
+    "Medical Typing Operator",
+    "Court Typing Assistant",
+    "WFH Typing Jobs — Part Time",
+    "Transcription Typing Freelancer",
+    "Invoice Typing Executive",
+    "Copy Typing Associate",
+    "Form Filling & Typing",
+    "Caption Typing Operator",
+    "Document Typing Clerk",
+  ],
+  content: [
+    "Content Writer Fresher",
+    "Blog Content Writer",
+    "Social Media Content Creator",
+    "Product Description Writer",
+    "SEO Content Writer",
+    "Article Writing Freelancer",
+    "Website Content Associate",
+    "Copywriter Junior",
+    "YouTube Script Writer",
+    "Email Content Writer",
+    "Academic Content Writer",
+    "Hinglish Content Writer",
+    "Content Editor Fresher",
+    "Caption & Hashtag Writer",
+  ],
+  wfh: [
+    "Work From Home Online Jobs",
+    "WFH Customer Support",
+    "WFH Chat Support Executive",
+    "WFH Virtual Assistant",
+    "WFH Part-Time Jobs",
+    "WFH Form Filling Jobs",
+    "WFH Email Handling",
+    "WFH Lead Generation",
+    "WFH Back Office Associate",
+    "WFH Online Tutoring Assistant",
+    "WFH Data Processing",
+    "WFH Order Processing",
+    "WFH Night Shift Support",
+    "WFH Microtask Worker",
+  ],
+  freelance: [
+    "Freelance Data Entry",
+    "Freelance Typing Projects",
+    "Freelance Content Writing",
+    "Freelance Online Survey Work",
+    "Freelance Excel Sheet Work",
+    "Freelance Form Filling",
+    "Freelance Virtual Assistant",
+    "Freelance Social Media Posts",
+    "Freelance Resume Formatting",
+    "Freelance Caption Writing",
+    "Freelance Catalog Listing",
+    "Freelance Document Digitization",
+    "Freelance Part-Time Desk Work",
+    "Freelance Lead List Building",
+  ],
+  excel: [
+    "MS Excel Data Analyst — Fresher",
+    "Excel MIS Executive",
+    "Advanced Excel Operator",
+    "Excel & Google Sheets Associate",
+    "VLOOKUP / Pivot Specialist",
+    "Accounts Excel Assistant",
+    "Inventory Excel Executive",
+    "Excel Reporting Analyst",
+    "HR Excel MIS Executive",
+    "Sales Excel Tracker",
+    "Excel Data Cleaning Associate",
+    "Spreadsheet Fresher — WFH",
+    "Excel Billing Executive",
+    "Excel Dashboard Junior",
+  ],
+};
 
 const FRESHER_BY_STREAM: Record<(typeof STREAMS)[number], string[]> = {
-  "Any Graduate": [
-    "Graduate Trainee",
-    "Fresher Customer Support",
-    "Office Assistant — Fresher",
-    "Junior Operations Associate",
-  ],
-  "B.Tech / BE": [
-    "Graduate Engineer Trainee",
-    "Junior Software Support Fresher",
-    "IT Helpdesk Fresher",
-    "QA / Testing Fresher",
-  ],
-  "B.Com": [
-    "Accounts Fresher",
-    "Junior Accountant — B.Com",
-    "Billing Executive Fresher",
-    "Audit Support Fresher",
-  ],
-  "BBA / BBM": [
-    "Management Trainee — BBA",
-    "Business Operations Fresher",
-    "Sales Coordinator Fresher",
-    "HR Coordinator Fresher",
-  ],
-  "BA / Arts": [
-    "Content Support Fresher — Arts",
-    "Admin Executive Fresher",
-    "Client Relation Fresher",
-    "Library / Documentation Fresher",
-  ],
-  "B.Sc": [
-    "Lab / Process Fresher — B.Sc",
-    "Science Graduate Trainee",
-    "Quality Check Fresher",
-    "Research Assistant Fresher",
-  ],
-  Diploma: [
-    "Diploma Trainee — Technical",
-    "Junior Technician Fresher",
-    "CAD Support Fresher",
-    "Workshop / Field Fresher",
-  ],
-  "MBA / PG": [
-    "MBA Management Trainee",
-    "Business Analyst Fresher — PG",
-    "Marketing Associate Fresher",
-    "Finance Analyst Fresher — MBA",
-  ],
-  "12th Pass": [
-    "Office Boy / Front Desk — 12th Pass",
-    "Data Entry Fresher — 12th Pass",
-    "Reception Assistant",
-    "Store Assistant — Fresher",
-  ],
-  "ITI / Polytechnic": [
-    "ITI Apprentice / Trainee",
-    "Polytechnic Diploma Fresher",
-    "Machine Operator Trainee",
-    "Maintenance Support Fresher",
-  ],
+  "Any Graduate": ["Graduate Trainee", "Fresher Customer Support", "Office Assistant — Fresher", "Junior Operations Associate"],
+  "B.Tech / BE": ["Graduate Engineer Trainee", "Junior Software Support Fresher", "IT Helpdesk Fresher", "QA / Testing Fresher"],
+  "B.Com": ["Accounts Fresher", "Junior Accountant — B.Com", "Billing Executive Fresher", "Audit Support Fresher"],
+  "BBA / BBM": ["Management Trainee — BBA", "Business Operations Fresher", "Sales Coordinator Fresher", "HR Coordinator Fresher"],
+  "BA / Arts": ["Content Support Fresher — Arts", "Admin Executive Fresher", "Client Relation Fresher", "Documentation Fresher"],
+  "B.Sc": ["Lab / Process Fresher — B.Sc", "Science Graduate Trainee", "Quality Check Fresher", "Research Assistant Fresher"],
+  Diploma: ["Diploma Trainee — Technical", "Junior Technician Fresher", "CAD Support Fresher", "Field Fresher"],
+  "MBA / PG": ["MBA Management Trainee", "Business Analyst Fresher — PG", "Marketing Associate Fresher", "Finance Analyst Fresher"],
+  "12th Pass": ["Front Desk — 12th Pass", "Data Entry Fresher — 12th Pass", "Reception Assistant", "Store Assistant — Fresher"],
+  "ITI / Polytechnic": ["ITI Apprentice / Trainee", "Polytechnic Fresher", "Machine Operator Trainee", "Maintenance Support Fresher"],
 };
 
 const KIND_EMPLOYERS: Record<Exclude<JobKind, "global">, string[]> = {
-  typing: ["typing-speed-desk", "metro-bpo-hub", "work-from-home-desk", "india-office-network"],
-  excel: ["excel-talent-pool", "india-office-network", "skill-bridge-india", "city-ops-collective"],
-  freelance: ["freelance-india-board", "work-from-home-desk", "typing-speed-desk", "excel-talent-pool"],
-  fresher: ["campus-hire-india", "graduate-first-desk", "skill-bridge-india", "metro-bpo-hub", "city-ops-collective"],
+  survey: ["survey-panel-india", "work-from-home-desk", "freelance-india-board", "metro-bpo-hub", "skill-bridge-india"],
+  dataentry: ["data-entry-india", "metro-bpo-hub", "work-from-home-desk", "india-office-network", "typing-speed-desk"],
+  typing: ["typing-speed-desk", "data-entry-india", "work-from-home-desk", "metro-bpo-hub", "india-office-network"],
+  content: ["content-desk-india", "freelance-india-board", "work-from-home-desk", "skill-bridge-india", "campus-hire-india"],
+  wfh: ["work-from-home-desk", "freelance-india-board", "metro-bpo-hub", "data-entry-india", "survey-panel-india"],
+  freelance: ["freelance-india-board", "work-from-home-desk", "content-desk-india", "typing-speed-desk", "excel-talent-pool"],
+  excel: ["excel-talent-pool", "india-office-network", "skill-bridge-india", "data-entry-india", "work-from-home-desk"],
+  fresher: ["campus-hire-india", "graduate-first-desk", "skill-bridge-india", "metro-bpo-hub", "india-office-network"],
 };
+
+const EMPLOYER_BY_SLUG = Object.fromEntries(EMPLOYERS.map((e) => [e.slug, e])) as Record<
+  string,
+  Employer
+>;
+
+const TARGET = 10_000;
+const NOW = Date.UTC(2026, 7, 1);
 
 function indeedUrl(title: string, city: string): string {
   const q = encodeURIComponent(`${title} India`);
@@ -194,39 +233,55 @@ function indeedUrl(title: string, city: string): string {
 }
 
 function departmentFor(kind: Exclude<JobKind, "global">, stream?: string): string {
-  if (kind === "typing") return "Typing & Data Entry";
-  if (kind === "excel") return "Excel & MIS";
-  if (kind === "freelance") return "Freelance / WFH";
-  return stream ? `Fresher · ${stream}` : "Fresher";
+  switch (kind) {
+    case "survey":
+      return "Survey & Research";
+    case "dataentry":
+      return "Data Entry";
+    case "typing":
+      return "Typing";
+    case "content":
+      return "Content Writing";
+    case "wfh":
+      return "Work From Home";
+    case "freelance":
+      return "Freelance";
+    case "excel":
+      return "Excel & MIS";
+    case "fresher":
+      return stream ? `Fresher · ${stream}` : "Fresher";
+  }
 }
 
-function makeCatalogJob(input: {
-  index: number;
-  kind: Exclude<JobKind, "global">;
-  title: string;
-  city: string;
-  employer: Employer;
-  stream?: string;
-}): Job & { kind: JobKind; stream: string | null } {
-  const sourceId = `${input.kind}-${input.index}`;
-  const postedDays = (input.index * 7) % 28;
-  const postedAt = new Date(Date.now() - postedDays * 86_400_000).toISOString();
+function makeJob(
+  index: number,
+  kind: Exclude<JobKind, "global">,
+  title: string,
+  city: string,
+  employer: Employer,
+  stream?: string,
+): Job {
+  const sourceId = `${kind}-${index}`;
+  const postedDays = (index * 3) % 28;
   return {
-    id: encodeJobId("catalog", input.employer.slug, sourceId),
+    id: `c:${employer.slug}:${sourceId}`,
     sourceId,
     ats: "catalog" as Ats,
-    company: input.employer.name,
-    companySlug: input.employer.slug,
-    title: input.stream ? `${input.title} (${input.stream})` : input.title,
-    location: `${input.city}, India`,
-    city: input.city,
-    department: departmentFor(input.kind, input.stream),
-    url: indeedUrl(input.title, input.city),
-    postedAt,
+    company: employer.name,
+    companySlug: employer.slug,
+    title: stream ? `${title} (${stream})` : title,
+    location: `${city}, India`,
+    city,
+    department: departmentFor(kind, stream),
+    url: indeedUrl(title, city),
+    postedAt: new Date(NOW - postedDays * 86_400_000).toISOString(),
     postedLabel: postedDays === 0 ? "Posted today" : `Posted ${postedDays} days ago`,
-    workplaceType: input.city === "Remote India" || input.kind === "freelance" ? "Remote" : "On-site / Hybrid",
-    kind: input.kind,
-    stream: input.stream ?? null,
+    workplaceType:
+      city === "Remote India" || kind === "wfh" || kind === "freelance" || kind === "survey"
+        ? "Remote"
+        : "On-site / Hybrid",
+    kind,
+    stream: stream ?? null,
   };
 }
 
@@ -239,75 +294,122 @@ export const CATALOG_COMPANIES = EMPLOYERS.map((employer) => ({
   industry: employer.industry,
 }));
 
-/** Builds 3000+ fresher / freelance / typing / Excel roles across India. */
-export function buildCatalogJobs(): Array<Job & { kind: JobKind; stream: string | null }> {
-  const jobs: Array<Job & { kind: JobKind; stream: string | null }> = [];
-  const employerBySlug = Object.fromEntries(EMPLOYERS.map((e) => [e.slug, e]));
+let catalogCache: Job[] | null = null;
+
+/** Builds ~10,000 India roles once per session (memoized). */
+export function getCatalogJobs(): Job[] {
+  if (catalogCache) return catalogCache;
+
+  const jobs: Job[] = new Array(TARGET);
   let index = 0;
 
   function push(
     kind: Exclude<JobKind, "global">,
     title: string,
-    city: string,
+    city: (typeof CITIES)[number],
     employerSlug: string,
     stream?: string,
   ) {
-    const employer = employerBySlug[employerSlug];
+    if (index >= TARGET) return;
+    const employer = EMPLOYER_BY_SLUG[employerSlug];
     if (!employer) return;
-    jobs.push(makeCatalogJob({ index: index++, kind, title, city, employer, stream }));
+    jobs[index] = makeJob(index, kind, title, city, employer, stream);
+    index += 1;
   }
 
-  for (const title of TYPING_TITLES) {
-    for (const city of CITIES) {
-      for (const slug of KIND_EMPLOYERS.typing) {
-        push("typing", title, city, slug);
-      }
-    }
-  }
+  const nonFresher = Object.keys(TITLES) as Array<keyof typeof TITLES>;
 
-  for (const title of EXCEL_TITLES) {
-    for (const city of CITIES) {
-      for (const slug of KIND_EMPLOYERS.excel) {
-        push("excel", title, city, slug);
-      }
-    }
-  }
-
-  for (const title of FREELANCE_TITLES) {
-    for (const city of CITIES) {
-      for (const slug of KIND_EMPLOYERS.freelance) {
-        push("freelance", title, city, slug);
-      }
-    }
-  }
-
-  for (const stream of STREAMS) {
-    for (const title of FRESHER_BY_STREAM[stream]) {
-      for (const city of CITIES) {
-        for (const slug of KIND_EMPLOYERS.fresher.slice(0, 3)) {
-          push("fresher", title, city, slug, stream);
+  // Pass 1: core categories × cities × employers
+  while (index < TARGET) {
+    const before = index;
+    for (const kind of nonFresher) {
+      for (const title of TITLES[kind]) {
+        for (const city of CITIES) {
+          for (const slug of KIND_EMPLOYERS[kind]) {
+            push(kind, title, city, slug);
+            if (index >= TARGET) break;
+          }
+          if (index >= TARGET) break;
         }
+        if (index >= TARGET) break;
       }
+      if (index >= TARGET) break;
     }
+    for (const stream of STREAMS) {
+      for (const title of FRESHER_BY_STREAM[stream]) {
+        for (const city of CITIES) {
+          for (const slug of KIND_EMPLOYERS.fresher) {
+            push("fresher", title, city, slug, stream);
+            if (index >= TARGET) break;
+          }
+          if (index >= TARGET) break;
+        }
+        if (index >= TARGET) break;
+      }
+      if (index >= TARGET) break;
+    }
+    if (index === before) break; // safety
   }
 
-  return jobs;
+  catalogCache = index === TARGET ? jobs : jobs.slice(0, index);
+  return catalogCache;
+}
+
+/** @deprecated use getCatalogJobs */
+export function buildCatalogJobs(): Job[] {
+  return getCatalogJobs();
 }
 
 export function inferKind(job: Job): JobKind {
-  const withKind = job as Job & { kind?: JobKind };
-  if (withKind.kind) return withKind.kind;
+  if (job.kind) return job.kind;
   if (job.ats === "catalog") {
     const id = job.sourceId;
+    if (id.startsWith("survey")) return "survey";
+    if (id.startsWith("dataentry")) return "dataentry";
     if (id.startsWith("typing")) return "typing";
-    if (id.startsWith("excel")) return "excel";
+    if (id.startsWith("content")) return "content";
+    if (id.startsWith("wfh")) return "wfh";
     if (id.startsWith("freelance")) return "freelance";
+    if (id.startsWith("excel")) return "excel";
     if (id.startsWith("fresher")) return "fresher";
   }
   const blob = `${job.title} ${job.department}`.toLowerCase();
-  if (/\b(typist|typing|data entry|form filling)\b/.test(blob)) return "typing";
+  if (/\bsurvey\b/.test(blob)) return "survey";
+  if (/\bdata entry\b/.test(blob)) return "dataentry";
+  if (/\b(typist|typing)\b/.test(blob)) return "typing";
+  if (/\b(content|copywriter|blog|seo writer)\b/.test(blob)) return "content";
+  if (/\b(wfh|work from home)\b/.test(blob)) return "wfh";
+  if (/\b(freelance|gig|virtual assistant)\b/.test(blob)) return "freelance";
   if (/\b(excel|spreadsheet|mis executive|vlookup|pivot)\b/.test(blob)) return "excel";
-  if (/\b(freelance|gig|part.?time wfh|virtual assistant)\b/.test(blob)) return "freelance";
   if (/\b(fresher|trainee|graduate|entry.?level|intern)\b/.test(blob)) return "fresher";
   return "global";
+}
+
+export function kindLabel(kind: JobKind): string {
+  return JOB_KINDS.find((item) => item.id === kind)?.label ?? kind;
+}
+
+/** Categories present in the loaded jobs, with live counts from data. */
+export function categoriesFromJobs(jobs: Job[]): { id: JobKind; label: string; count: number }[] {
+  const counts = new Map<JobKind, number>();
+  for (const job of jobs) {
+    const kind = job.kind ?? inferKind(job);
+    counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([id, count]) => ({ id, label: kindLabel(id), count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+/** Streams present in the loaded jobs, with live counts from data. */
+export function streamsFromJobs(jobs: Job[]): { id: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const job of jobs) {
+    const stream = job.stream?.trim();
+    if (!stream) continue;
+    counts.set(stream, (counts.get(stream) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([id, count]) => ({ id, count }))
+    .sort((a, b) => b.count - a.count || a.id.localeCompare(b.id));
 }

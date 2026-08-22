@@ -14,6 +14,8 @@ const CITY_RULES: { city: string; pattern: RegExp }[] = [
   { city: "Chandigarh", pattern: /\bchandigarh\b|\bmohali\b/i },
   { city: "Lucknow", pattern: /\blucknow\b/i },
   { city: "Nagpur", pattern: /\bnagpur\b/i },
+  { city: "Bhopal", pattern: /\bbhopal\b/i },
+  { city: "Patna", pattern: /\bpatna\b/i },
   { city: "Remote India", pattern: /\bremote[^\n]{0,40}india\b|\bindia[^\n]{0,20}remote\b|\bremote - india\b|\bremote, india\b/i },
 ];
 
@@ -36,6 +38,8 @@ export const CITIES = [
   "Chandigarh",
   "Lucknow",
   "Nagpur",
+  "Bhopal",
+  "Patna",
   "Remote India",
   "India",
 ] as const;
@@ -57,9 +61,13 @@ export function inferDepartment(title: string, given?: string | null): string {
     return given.trim();
   }
   const t = title.toLowerCase();
-  if (/\b(typist|typing|data entry|form filling|copy typing)\b/.test(t)) return "Typing & Data Entry";
+  if (/\b(survey)\b/.test(t)) return "Survey & Research";
+  if (/\b(data entry)\b/.test(t)) return "Data Entry";
+  if (/\b(typist|typing|form filling|copy typing)\b/.test(t)) return "Typing";
+  if (/\b(content writer|copywriter|blog|seo content)\b/.test(t)) return "Content Writing";
+  if (/\b(work from home|wfh)\b/.test(t)) return "Work From Home";
   if (/\b(excel|spreadsheet|mis |vlookup|pivot)\b/.test(t)) return "Excel & MIS";
-  if (/\b(freelance|gig|virtual assistant)\b/.test(t)) return "Freelance / WFH";
+  if (/\b(freelance|gig|virtual assistant)\b/.test(t)) return "Freelance";
   if (/\b(fresher|trainee|graduate|apprentice|entry.?level)\b/.test(t)) return "Fresher";
   if (/\b(account executive|sales|business development|go-to-market|gtm|customer engineer|solutions consultant)\b/.test(t)) {
     return "Sales";

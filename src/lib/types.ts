@@ -29,7 +29,7 @@ export type Job = {
   postedAt: string | null;
   postedLabel: string | null;
   workplaceType: string | null;
-  kind?: "fresher" | "freelance" | "typing" | "excel" | "global";
+  kind?: "survey" | "dataentry" | "typing" | "content" | "wfh" | "freelance" | "excel" | "fresher" | "global";
   stream?: string | null;
 };
 

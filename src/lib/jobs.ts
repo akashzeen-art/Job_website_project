@@ -1,14 +1,14 @@
-import { buildCatalogJobs } from "@/lib/catalog";
+import { getCatalogJobs } from "@/lib/catalog";
 import { LIVE_ATS_COMPANIES, COMPANY_BY_SLUG } from "@/lib/companies";
 import { encodeJobId } from "@/lib/ids";
 import { decodeGreenhouseHtml, sanitizeHtml } from "@/lib/html";
 import { inferDepartment, mentionsIndia, normalizeCity } from "@/lib/india";
 import type { Company, Job, JobDetail } from "@/lib/types";
 
-const CACHE_KEY = "meridian:jobs-cache:v3";
+const LIVE_CACHE_KEY = "meridian:live-jobs:v1";
 const CACHE_MS = 30 * 60 * 1000;
 
-type CachedPayload = {
+type LiveCache = {
   fetchedAt: number;
   jobs: Job[];
 };
@@ -216,38 +216,11 @@ async function fetchCompanyJobs(company: Company): Promise<Job[]> {
   }
 }
 
-function recency(job: Job): number {
-  if (job.postedAt) {
-    const time = Date.parse(job.postedAt);
-    if (!Number.isNaN(time)) return time;
-  }
-  const label = (job.postedLabel ?? "").toLowerCase();
-  const days = label.match(/(\d+)\s+day/);
-  if (days) return Date.now() - Number(days[1]) * 86_400_000;
-  const hours = label.match(/(\d+)\s+hour/);
-  if (hours) return Date.now() - Number(hours[1]) * 3_600_000;
-  if (/today|just posted|posted today/.test(label)) return Date.now();
-  return 0;
-}
-
-function uniqueJobs(jobs: Job[]): Job[] {
-  const seen = new Set<string>();
-  const unique: Job[] = [];
-  for (const job of jobs) {
-    const key = `${job.companySlug}:${job.title}:${job.city}`.toLowerCase();
-    if (seen.has(key) || seen.has(job.id)) continue;
-    seen.add(key);
-    seen.add(job.id);
-    unique.push(job);
-  }
-  return unique.sort((a, b) => recency(b) - recency(a));
-}
-
-function readCache(): CachedPayload | null {
+function readLiveCache(): LiveCache | null {
   try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
+    const raw = sessionStorage.getItem(LIVE_CACHE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as CachedPayload;
+    const parsed = JSON.parse(raw) as LiveCache;
     if (!parsed?.jobs || !parsed.fetchedAt) return null;
     if (Date.now() - parsed.fetchedAt > CACHE_MS) return null;
     return parsed;
@@ -256,23 +229,48 @@ function readCache(): CachedPayload | null {
   }
 }
 
-function writeCache(jobs: Job[]) {
+function writeLiveCache(jobs: Job[]) {
   try {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ fetchedAt: Date.now(), jobs }));
+    sessionStorage.setItem(LIVE_CACHE_KEY, JSON.stringify({ fetchedAt: Date.now(), jobs }));
   } catch {
-    /* ignore quota */
+    /* ignore quota — catalog is never stored */
   }
 }
 
-export async function fetchAllJobs(): Promise<Job[]> {
-  const cached = readCache();
+function mergeJobs(catalog: Job[], live: Job[]): Job[] {
+  if (live.length === 0) return catalog;
+  const seen = new Set(catalog.map((job) => `${job.companySlug}:${job.title}:${job.city}`.toLowerCase()));
+  const extra: Job[] = [];
+  for (const job of live) {
+    const key = `${job.companySlug}:${job.title}:${job.city}`.toLowerCase();
+    if (seen.has(key) || seen.has(job.id)) continue;
+    seen.add(key);
+    seen.add(job.id);
+    extra.push(job);
+  }
+  return extra.length ? catalog.concat(extra) : catalog;
+}
+
+/** Instant catalog (~10k). Live ATS jobs merge in asynchronously. */
+export function getInstantJobs(): Job[] {
+  const catalog = getCatalogJobs();
+  const live = readLiveCache()?.jobs ?? [];
+  return mergeJobs(catalog, live);
+}
+
+export async function fetchLiveJobs(): Promise<Job[]> {
+  const cached = readLiveCache();
   if (cached) return cached.jobs;
-  const catalog = buildCatalogJobs();
   const groups = await mapPool(LIVE_ATS_COMPANIES, 8, fetchCompanyJobs);
   const live = groups.flat().map((job) => ({ ...job, kind: "global" as const, stream: null }));
-  const jobs = uniqueJobs([...catalog, ...live]);
-  writeCache(jobs);
-  return jobs;
+  writeLiveCache(live);
+  return live;
+}
+
+export async function fetchAllJobs(): Promise<Job[]> {
+  const catalog = getCatalogJobs();
+  const live = await fetchLiveJobs();
+  return mergeJobs(catalog, live);
 }
 
 export async function fetchJobDetail(jobs: Job[], id: string): Promise<JobDetail | null> {

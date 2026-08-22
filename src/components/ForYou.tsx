@@ -13,9 +13,21 @@ export function ForYou({ jobs }: { jobs: Job[] }) {
 
   const picks = useMemo(() => {
     if (!intent) return [];
-    return [...jobs]
-      .sort((a, b) => fitScore(b, intent) - fitScore(a, intent))
-      .slice(0, 3);
+    const needle = intent.toLowerCase();
+    const tokens = needle.split(/\s+/).filter((t) => t.length > 2);
+    const scored: { job: Job; score: number }[] = [];
+    // Scan at most 2.5k roles for speed; early-exit once we have a strong shortlist.
+    const limit = Math.min(jobs.length, 2500);
+    for (let i = 0; i < limit; i += 1) {
+      const job = jobs[i];
+      const hay = `${job.title} ${job.company} ${job.city} ${job.department}`.toLowerCase();
+      if (tokens.length && !tokens.some((token) => hay.includes(token))) continue;
+      scored.push({ job, score: fitScore(job, intent) });
+    }
+    return scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map((row) => row.job);
   }, [jobs, intent]);
 
   if (!intent || picks.length === 0) return null;
@@ -29,7 +41,7 @@ export function ForYou({ jobs }: { jobs: Job[] }) {
             From “{intent}”
           </h2>
         </div>
-        <Link to={`/jobs?q=${encodeURIComponent(intent)}`} className="shrink-0 text-sm text-gold">
+        <Link to={`/?q=${encodeURIComponent(intent)}`} className="shrink-0 text-sm text-gold">
           Open search
         </Link>
       </div>

@@ -70,10 +70,24 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    proxy: atsProxy,
+    proxy: {
+      ...atsProxy,
+      "/api": {
+        target: "https://globalyogas.com",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   preview: {
     port: 4173,
-    proxy: atsProxy,
+    proxy: {
+      ...atsProxy,
+      "/api": {
+        target: "https://globalyogas.com",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
 });

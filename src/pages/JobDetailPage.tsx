@@ -5,6 +5,7 @@ import { JobCard } from "@/components/JobCard";
 import { JobDescription } from "@/components/JobDescription";
 import { LoadingPanel } from "@/components/LoadingPanel";
 import { SaveButton } from "@/components/SaveButton";
+import { useSubscription } from "@/context/SubscriptionContext";
 import { COMPANY_BY_SLUG } from "@/lib/companies";
 import { atsLabel, timeAgo } from "@/lib/format";
 import { fitScore, fitWhy, jobTags } from "@/lib/insights";
@@ -15,6 +16,7 @@ import type { JobDetail } from "@/lib/types";
 export function JobDetailPage() {
   const { id } = useParams();
   const { jobs, loading, getDetail } = useJobs();
+  const { checkAccess } = useSubscription();
   const [detail, setDetail] = useState<JobDetail | null | undefined>(undefined);
 
   useEffect(() => {
@@ -40,6 +42,12 @@ export function JobDetailPage() {
         item.id !== job.id && (item.department === job.department || item.city === job.city),
     )
     .slice(0, 3);
+
+  async function openApply(event: React.MouseEvent) {
+    event.preventDefault();
+    const allowed = await checkAccess({ type: "external", url: job.url });
+    if (allowed) window.open(job.url, "_blank", "noopener,noreferrer");
+  }
 
   return (
     <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 sm:py-12 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -75,14 +83,13 @@ export function JobDetailPage() {
           </div>
           <div className="mt-5 flex gap-2 lg:hidden">
             <SaveButton id={job.id} />
-            <a
-              href={job.url}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={openApply}
               className="inline-flex h-11 flex-1 items-center justify-center bg-wine px-4 text-xs tracking-[0.16em] text-text uppercase"
             >
               Apply
-            </a>
+            </button>
           </div>
         </div>
         <div className="mt-4 border border-line bg-surface p-4 lg:hidden">
@@ -121,14 +128,13 @@ export function JobDetailPage() {
             <Row label="Source" value={atsLabel(job.ats)} />
             {job.workplaceType ? <Row label="Type" value={job.workplaceType} /> : null}
           </dl>
-          <a
-            href={job.url}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={openApply}
             className="mt-5 inline-flex h-11 w-full items-center justify-center bg-wine text-xs tracking-[0.16em] text-text uppercase"
           >
             Apply on {job.company}
-          </a>
+          </button>
           <div className="mt-2 flex justify-center">
             <SaveButton id={job.id} />
           </div>

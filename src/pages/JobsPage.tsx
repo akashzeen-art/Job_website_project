@@ -22,7 +22,7 @@ export function JobsPage() {
         {jobs.length.toLocaleString("en-IN")}+ India roles
       </h1>
       <p className="mt-2 max-w-2xl text-sm text-muted sm:text-base">
-        Freelance · typing · Excel · fresher (all streams) · plus live global tech hiring in India.
+        Survey · data entry · typing · content · WFH · freelance · Excel · fresher — plus live global tech.
       </p>
       <div className="mt-5 sm:mt-8">
         <JobsExplorer jobs={jobs} companies={companies} departments={departments} />

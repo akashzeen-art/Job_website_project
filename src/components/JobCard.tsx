@@ -1,10 +1,11 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { COMPANY_BY_SLUG } from "@/lib/companies";
 import { timeAgo } from "@/lib/format";
 import { fitScore, jobTags } from "@/lib/insights";
 import type { Job } from "@/lib/types";
 import { CompanyMark } from "@/components/CompanyMark";
 import { SaveButton } from "@/components/SaveButton";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 type Props = {
   job: Job;
@@ -13,9 +14,23 @@ type Props = {
 };
 
 export function JobCard({ job, query = "", dense = false }: Props) {
+  const navigate = useNavigate();
+  const { checkAccess } = useSubscription();
   const company = COMPANY_BY_SLUG[job.companySlug];
   const score = fitScore(job, query);
   const tags = jobTags(job);
+
+  async function openJobDetail(event: React.MouseEvent) {
+    event.preventDefault();
+    const allowed = await checkAccess({ type: "navigate", to: `/jobs/${job.id}` });
+    if (allowed) navigate(`/jobs/${job.id}`);
+  }
+
+  async function openApply(event: React.MouseEvent) {
+    event.preventDefault();
+    const allowed = await checkAccess({ type: "external", url: job.url });
+    if (allowed) window.open(job.url, "_blank", "noopener,noreferrer");
+  }
 
   return (
     <article className={`card-hover border border-line bg-surface ${dense ? "p-3.5" : "p-4 sm:p-5"}`}>
@@ -33,7 +48,7 @@ export function JobCard({ job, query = "", dense = false }: Props) {
                 <span className="text-line"> · </span>
                 {job.city}
               </p>
-              <Link to={`/jobs/${job.id}`} className="mt-1 block">
+              <button type="button" onClick={openJobDetail} className="mt-1 block w-full text-left">
                 <h3
                   className={`break-words font-display leading-snug text-text ${
                     dense ? "text-[1.2rem]" : "text-[1.35rem] sm:text-[1.5rem]"
@@ -41,7 +56,7 @@ export function JobCard({ job, query = "", dense = false }: Props) {
                 >
                   {job.title}
                 </h3>
-              </Link>
+              </button>
             </div>
             <span className="shrink-0 pt-0.5 text-xs text-gold">{score}</span>
           </div>
@@ -64,14 +79,13 @@ export function JobCard({ job, query = "", dense = false }: Props) {
           ) : null}
           <div className={`flex gap-2 ${dense ? "mt-3" : "mt-4"}`}>
             <SaveButton id={job.id} />
-            <a
-              href={job.url}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={openApply}
               className="inline-flex h-11 flex-1 items-center justify-center bg-wine px-4 text-xs tracking-[0.16em] text-text uppercase sm:flex-none"
             >
               Apply
-            </a>
+            </button>
           </div>
         </div>
       </div>

@@ -1,10 +1,10 @@
 # Meridian
 
-A job portal for **India openings**: freelancing, typing, Excel, fresher roles across every stream, plus live international tech boards hiring here.
+India job board: **survey, data entry, typing, content, WFH, freelance**, Excel, fresher (all streams), plus live global tech roles.
 
-You apply on the employer’s site or India job boards. Meridian does not collect applications or resumes.
+**10,000+** catalog roles load instantly in the browser. Live Greenhouse / Ashby / Workday India jobs merge in the background (cached 30 minutes). Apply opens on the employer or India job boards — Meridian never stores resumes.
 
-## Run it
+## Run
 
 ```bash
 npm install
@@ -13,16 +13,6 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The board loads **3000+** fresher / freelance / typing / Excel listings instantly, then merges live Greenhouse, Ashby, and Workday India roles (cached in `sessionStorage` for 30 minutes).
-
-## What you can do
-
-- Browse Fresher, Freelance, Typing, Excel, and Global tech categories
-- Filter by stream (B.Tech, B.Com, BBA, Arts, Diploma, 12th pass, ITI, and more)
-- Search by city, title, or employer
-- Open a role and continue on the apply page
-- Save a shortlist in the browser
-
 ## Stack
 
-React, Vite, TypeScript, Tailwind CSS, React Router. No API keys required.
+React, Vite, TypeScript, Tailwind CSS, React Router.
