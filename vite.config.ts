@@ -73,7 +73,7 @@ export default defineConfig({
     proxy: {
       ...atsProxy,
       "/api": {
-        target: "https://globalyogas.com",
+        target: "https://cookstudio.live",
         changeOrigin: true,
         secure: true,
       },
@@ -84,7 +84,7 @@ export default defineConfig({
     proxy: {
       ...atsProxy,
       "/api": {
-        target: "https://globalyogas.com",
+        target: "https://cookstudio.live",
         changeOrigin: true,
         secure: true,
       },

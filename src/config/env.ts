@@ -1,7 +1,7 @@
 const trimBase = (value: string | undefined): string =>
   (value ?? "").trim().replace(/\/$/, "");
 
-export const API_ORIGIN = "https://globalyogas.com";
+export const API_ORIGIN = "https://cookstudio.live";
 
 const resolveApiBaseUrl = (): string => {
   const fromEnv = trimBase(import.meta.env.VITE_API_BASE_URL);
